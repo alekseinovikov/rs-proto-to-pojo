@@ -1,6 +1,13 @@
-[package]
-name = "rs-proto-to-pojo"
-version = "0.1.0"
+[workspace]
+members = [
+    "rs-proto-to-pojo-parser"
+]
+resolver = "3"
+
+[workspace.package]
 edition = "2024"
 
-[dependencies]
+[workspace.dependencies]
+pest = "2.8"
+pest_derive = "2.8"
+

@@ -1,0 +1,11 @@
+[package]
+name = "rs-proto-to-pojo-parser"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pest = {workspace = true}
+pest_derive = {workspace = true}
+
+[build-dependencies]
+

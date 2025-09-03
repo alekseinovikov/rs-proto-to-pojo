@@ -1,0 +1,177 @@
+// -----------------------------------------------------------------------------
+// Pest Grammar for Protobuf v3
+// Converted from an ANTLR grammar.
+// -----------------------------------------------------------------------------
+
+// --- 1. Automatic whitespace and comment handling ---
+// pest will automatically skip THESE rules BETWEEN all other rules.
+// This replaces all of ANTLR's `-> channel(HIDDEN)`.
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+COMMENT    = _{ block_comment | line_comment | plugin_dev_marker }
+
+// --- Low-level rules (former lexer fragments) ---
+// Rules starting with `_` are "silent" - they don't create
+// a node in the parse tree, which helps to keep it clean.
+_minus = @{ "-" }
+_dot   = @{ "." }
+
+// --- Literals and basic types ---
+// @ - makes the rule "atomic". We get the entire `ident` as a single token,
+// not a tree of `alpha` and `digit`.
+ident = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+full_ident = @{ ident ~ (_dot ~ ident)* }
+
+dec_value = @{ "0" | _minus? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+hex_value = @{ _minus? ~ "0" ~ ("x" | "X") ~ ASCII_HEX_DIGIT+ }
+oct_value = @{ _minus? ~ "0" ~ ASCII_OCT_DIGIT+ }
+integer_value = @{ dec_value | hex_value | oct_value }
+
+// For floats, the order is important to avoid ambiguity
+float_lit = @{ (_minus? ~ ASCII_DIGIT+ ~ _dot ~ ASCII_DIGIT*) | (_minus? ~ _dot ~ ASCII_DIGIT+) }
+exponent = @{ ("e" | "E") ~ ("+" | "-")? ~ ASCII_DIGIT+ }
+float_value = @{
+    _minus? ~ ("inf" | "nan") |
+    float_lit ~ exponent? |
+    integer_value ~ exponent
+}
+
+boolean_value = @{ "true" | "false" }
+
+// Strings with escape sequence handling
+esc_seq = _{
+    "\\" ~ (
+        // Explicitly list all possible escape characters
+        "a" | "v" | "b" | "t" | "n" | "f" | "r" | "?" | "\"" | "'" | "\\" |
+        // Hex, Unicode and Octal escape sequences
+        ("x" | "X") ~ ASCII_HEX_DIGIT{2} |
+        "u" ~ ASCII_HEX_DIGIT{4} |
+        ASCII_OCT_DIGIT{1,3}
+    )
+}
+string_value = @{
+    "\"" ~ (esc_seq | !("\"" | "\\") ~ ANY)* ~ "\"" |
+    "'" ~ (esc_seq | !("'" | "\\") ~ ANY)* ~ "'"
+}
+
+// --- Keywords (used as strings in parser rules) ---
+// In pest, there is no need to declare them separately, we just use "package", "message", etc.
+
+// --- Types ---
+scalar_type = {
+    "double" | "float" | "int32" | "int64" | "uint32" | "uint64" |
+    "sint32" | "sint64" | "fixed32" | "fixed64" | "sfixed32" | "sfixed64" |
+    "bool" | "string" | "bytes"
+}
+type_reference = { scalar_type | _dot? ~ full_ident }
+
+// --- Main Protobuf constructs (former parser rules) ---
+// ;----------------------------------------------------;
+// ;                  Top Level                         ;
+// ;----------------------------------------------------;
+proto = { SOI ~ syntax_statement? ~ proto_body* ~ EOI }
+proto_body = {
+    package_statement |
+    import_statement |
+    option_entry |
+    top_level_definition
+}
+top_level_definition = { message_block | enum_block | extend_block | service_block }
+
+syntax_statement = { "syntax" ~ "=" ~ syntax_name ~ ";" }
+syntax_name = { string_value }
+
+package_statement = { "package" ~ package_name ~ ";" }
+package_name = { full_ident }
+
+import_statement = { "import" ~ "public"? ~ file_reference ~ ";" }
+file_reference = { string_value }
+
+option_entry = { "option" ~ option ~ ";" }
+
+// ;----------------------------------------------------;
+// ;                  Messages                          ;
+// ;----------------------------------------------------;
+message_block = { "message" ~ message_name ~ message_body }
+message_name = { ident }
+message_body = { "{" ~ message_element* ~ "}" ~ ";"? }
+message_element = {
+    field |
+    option_entry |
+    oneof |
+    map |
+    reserved |
+    enum_block |
+    message_block | // Nested messages
+    extend_block |
+    extensions |
+    group_block
+}
+
+field_modifier = { "optional" | "required" | "repeated" }
+field = { field_modifier? ~ type_reference ~ field_name ~ "=" ~ tag ~ field_options? ~ ";" }
+field_name = { ident }
+tag = { integer_value }
+field_options = { "[" ~ option ~ ("," ~ option)* ~ "]" }
+option = { field_reference ~ "=" ~ option_value }
+field_reference = { (standard_field_reference | "(" ~ custom_field_reference ~ ")") ~ (_dot ~ (standard_field_reference | "(" ~ custom_field_reference ~ ")"))* }
+standard_field_reference = { ident }
+custom_field_reference = { _dot? ~ full_ident }
+option_value = { integer_value | float_value | boolean_value | string_value | ident | text_format }
+
+text_format = { "{" ~ text_format_entry* ~ "}" }
+text_format_entry = { text_format_option_name ~ (":" ~ text_format_option_value | text_format) }
+text_format_option_name = { ident | "[" ~ type_reference ~ "]" }
+text_format_option_value = { integer_value | float_value | boolean_value | string_value | ident }
+
+oneof = { "oneof" ~ oneof_name ~ "{" ~ oneof_field* ~ "}" ~ ";"? }
+oneof_name = { ident }
+oneof_field = { field | group_block | option_entry }
+
+map = { "map" ~ "<" ~ map_key ~ "," ~ map_value ~ ">" ~ field_name ~ "=" ~ tag ~ field_options? ~ ";" }
+map_key = { "int32" | "int64" | "uint32" | "uint64" | "sint32" | "sint64" | "fixed32" | "fixed64" | "sfixed32" | "sfixed64" | "bool" | "string" }
+map_value = { type_reference }
+
+group_block = { field_modifier? ~ "group" ~ group_name ~ "=" ~ tag ~ message_body }
+group_name = { ident }
+
+extensions = { "extensions" ~ range ~ ("," ~ range)* ~ ";" }
+range = { range_from ~ ("to" ~ (range_to | "max"))? }
+range_from = { integer_value }
+range_to = { integer_value }
+
+reserved = { "reserved" ~ (range ~ ("," ~ range)* | reserved_field_name ~ ("," ~ reserved_field_name)*) ~ ";" }
+reserved_field_name = { string_value }
+
+// ;----------------------------------------------------;
+// ;                    Enums                           ;
+// ;----------------------------------------------------;
+enum_block = { "enum" ~ enum_name ~ "{" ~ enum_body* ~ "}" ~ ";"? }
+enum_name = { ident }
+enum_body = { enum_field | option_entry | reserved }
+enum_field = { enum_field_name ~ "=" ~ enum_field_value ~ field_options? ~ ";" }
+enum_field_name = { ident }
+enum_field_value = { integer_value }
+
+// ;----------------------------------------------------;
+// ;                    Extend                          ;
+// ;----------------------------------------------------;
+extend_block = { "extend" ~ type_reference ~ "{" ~ extend_block_entry* ~ "}" ~ ";"? }
+extend_block_entry = { field | group_block }
+
+// ;----------------------------------------------------;
+// ;                    Services                        ;
+// ;----------------------------------------------------;
+service_block = { "service" ~ service_name ~ "{" ~ service_element* ~ "}" ~ ";"? }
+service_name = { ident }
+service_element = { rpc_method | option_entry }
+rpc_method = { "rpc" ~ rpc_name ~ "(" ~ rpc_type ~ ")" ~ "returns" ~ "(" ~ rpc_type ~ ")" ~ (("{" ~ option_entry* ~ "}") | ";") ~ ";"? }
+rpc_name = { ident }
+rpc_type = { "stream"? ~ type_reference }
+
+// ;----------------------------------------------------;
+// ;               Helper Rules                         ;
+// ;----------------------------------------------------;
+// Hidden comments and IDE markers
+line_comment = _{ "//" ~ (!("\r" | "\n") ~ ANY)* }
+block_comment = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+plugin_dev_marker = _{ ("<caret>" | "<error " ~ ANY* ~ ">" | "</error>" | "<fold " ~ ANY* ~ ">" | "</fold>" | "<TYPO " ~ ANY* ~ ">" | "</TYPO>") }

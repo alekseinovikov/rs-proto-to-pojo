@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package me.alekseinovikov.proto;
+
+message Order {
+    int32 id = 1;
+    string name = 2;
+    repeated OrderItem items = 3;
+}
+
+message OrderItem {
+    string name = 1;
+    optional int64 count = 2;
+    OrderItemType type = 3;
+}
+
+enum OrderItemType {
+    REGULAR = 0;
+    DISCOUNT = 1;
+}

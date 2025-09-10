@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "rs-proto-to-pojo-parser"
+    "parser",
+    "java-generator",
 ]
 resolver = "3"
 

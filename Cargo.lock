@@ -57,6 +57,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "java-generator"
+version = "0.1.0"
+dependencies = [
+ "parser",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -67,6 +74,14 @@ name = "memchr"
 version = "2.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32a282da65faaf38286cf3be983213fcf1d2e2a58700e808f83f4ea9a4804bc0"
+
+[[package]]
+name = "parser"
+version = "0.1.0"
+dependencies = [
+ "pest",
+ "pest_derive",
+]
 
 [[package]]
 name = "pest"
@@ -128,14 +143,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "rs-proto-to-pojo-parser"
-version = "0.1.0"
-dependencies = [
- "pest",
- "pest_derive",
 ]
 
 [[package]]

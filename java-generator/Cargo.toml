@@ -1,0 +1,11 @@
+[package]
+name = "java-generator"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "java_generator"
+path = "src/lib.rs"
+
+[dependencies]
+parser = { path = "../parser" }

@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package me.alekseinovikov.proto;
+
+message Order {
+    int32 id = 1;
+    string name = 2;
+    repeated OrderItem items = 3;
+
+    // Nested message
+    message Address {
+        string street = 1;
+        string city = 2;
+    }
+
+    // Field using nested message type
+    Address shipping_address = 4;
+
+    // Nested enum
+    enum Status {
+        NEW = 0;
+        PAID = 1;
+        SHIPPED = 2;
+    }
+
+    Status status = 5;
+}
+
+message OrderItem {
+    string name = 1;
+    optional int64 count = 2;
+    OrderItemType type = 3;
+
+    // oneof pricing details
+    oneof pricing {
+        double price_decimal = 4;
+        int64 price_cents = 5;
+    }
+}
+
+enum OrderItemType {
+    REGULAR = 0;
+    DISCOUNT = 1;
+}

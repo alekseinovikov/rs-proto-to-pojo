@@ -1,0 +1,41 @@
+syntax = "proto3";
+package com.example.shop;
+
+// A complex-ish schema within parser/model capabilities.
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+  string zip = 4;
+}
+
+enum OrderStatus {
+  UNKNOWN = 0;
+  PENDING = 1;
+  SHIPPED = 2;
+  DELIVERED = 3;
+  CANCELED = 4;
+}
+
+message Customer {
+  string id = 1;
+  string name = 2;
+  Address billing_address = 3;
+  Address shipping_address = 4;
+}
+
+message LineItem {
+  string sku = 1;
+  string title = 2;
+  int32 quantity = 3;
+  double price = 4;
+}
+
+message Order {
+  string id = 1;
+  Customer customer = 2;
+  OrderStatus status = 3;
+  LineItem item = 4; // single item to stay within current IR (no repeated/list)
+  int64 created_at = 5;
+}
